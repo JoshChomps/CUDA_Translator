@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C / C++ build outputs
+*.obj
+*.o
+*.so
+*.dll
+*.dylib
+*.spv
+*.comp
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Local-only files: AI tool configs, interview notes, secrets, editor locks
+CLAUDE.md
+AGENTS.md
+.claude/
+PROF_QA.md
+HANDOFF*.md
+.env
+*.lck

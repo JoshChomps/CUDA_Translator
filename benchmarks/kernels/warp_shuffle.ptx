@@ -1,0 +1,45 @@
+// PTX Assembly for Warp-Level Reduction using shfl.sync.bfly and vote.sync.ballot
+.version 7.0
+.target sm_80
+.address_size 64
+
+.visible .entry warp_reduce(
+    .param .u64 in_ptr,
+    .param .u64 out_ptr
+)
+{
+    .reg .b32   %r<10>;
+    .reg .b64   %rd<10>;
+    .reg .f32   %f<10>;
+    .reg .pred  %p<4>;
+
+    // Thread ID
+    mov.u32         %r0, %tid.x;
+
+    // Load input
+    ld.param.u64    %rd0, [in_ptr];
+    ld.param.u64    %rd1, [out_ptr];
+    ld.global.f32   %f0, [%rd0];
+
+    // Butterfly reduction across 32 threads (lanes 16, 8, 4, 2, 1)
+    shfl.sync.bfly.b32  %f1, %f0, 16, 0x1f, 0xffffffff;
+    add.f32             %f0, %f0, %f1;
+
+    shfl.sync.bfly.b32  %f2, %f0, 8, 0x1f, 0xffffffff;
+    add.f32             %f0, %f0, %f2;
+
+    shfl.sync.bfly.b32  %f3, %f0, 4, 0x1f, 0xffffffff;
+    add.f32             %f0, %f0, %f3;
+
+    shfl.sync.bfly.b32  %f4, %f0, 2, 0x1f, 0xffffffff;
+    add.f32             %f0, %f0, %f4;
+
+    shfl.sync.bfly.b32  %f5, %f0, 1, 0x1f, 0xffffffff;
+    add.f32             %f0, %f0, %f5;
+
+    // Lane 0 writes result
+    setp.eq.s32     %p0, %r0, 0;
+    @%p0 st.global.f32  [%rd1], %f0;
+
+    ret;
+}

@@ -1,0 +1,46 @@
+// PTX Assembly for Vector Addition (c[i] = a[i] + b[i])
+.version 7.0
+.target sm_80
+.address_size 64
+
+.visible .entry vector_add(
+    .param .u64 a_ptr,
+    .param .u64 b_ptr,
+    .param .u64 c_ptr,
+    .param .u32 n
+)
+{
+    .reg .b32   %r<10>;
+    .reg .b64   %rd<10>;
+    .reg .f32   %f<4>;
+    .reg .pred  %p0;
+
+    // Load thread ID and block ID
+    mov.u32         %r0, %tid.x;
+    mov.u32         %r1, %ctaid.x;
+    mov.u32         %r2, %ntid.x;
+    mad.lo.s32      %r3, %r1, %r2, %r0; // global index i = ctaid * ntid + tid
+
+    // Bounds check against n
+    ld.param.u32    %r4, [n];
+    setp.ge.s32     %p0, %r3, %r4;
+    @%p0 bra        $L_EXIT;
+
+    // Load pointers
+    ld.param.u64    %rd0, [a_ptr];
+    ld.param.u64    %rd1, [b_ptr];
+    ld.param.u64    %rd2, [c_ptr];
+
+    // Load elements
+    ld.global.f32   %f0, [%rd0];
+    ld.global.f32   %f1, [%rd1];
+
+    // Compute sum
+    add.f32         %f2, %f0, %f1;
+
+    // Store result
+    st.global.f32   [%rd2], %f2;
+
+$L_EXIT:
+    ret;
+}

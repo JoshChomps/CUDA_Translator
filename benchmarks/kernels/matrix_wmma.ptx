@@ -1,0 +1,33 @@
+// PTX Assembly for Tensor Core Matrix Multiply (WMMA 16x16x16 FP16 -> FP32)
+.version 7.0
+.target sm_80
+.address_size 64
+
+.visible .entry wmma_gemm_tile(
+    .param .u64 a_ptr,
+    .param .u64 b_ptr,
+    .param .u64 c_ptr,
+    .param .u64 d_ptr
+)
+{
+    .reg .b64   %rd<10>;
+
+    // Load pointers
+    ld.param.u64    %rd0, [a_ptr];
+    ld.param.u64    %rd1, [b_ptr];
+    ld.param.u64    %rd2, [c_ptr];
+    ld.param.u64    %rd3, [d_ptr];
+
+    // Load fragments
+    wmma.load.a.sync.aligned.row.m16n16k16.f16  %rd4, [%rd0], 16;
+    wmma.load.b.sync.aligned.col.m16n16k16.f16  %rd5, [%rd1], 16;
+    wmma.load.c.sync.aligned.row.m16n16k16.f32  %rd6, [%rd2], 16;
+
+    // Execute MMA (D = A * B + C)
+    wmma.mma.sync.aligned.row.row.m16n16k16.f32.f16 %rd7, %rd4, %rd5, %rd6;
+
+    // Store result fragment to memory
+    wmma.store.d.sync.aligned.row.m16n16k16.f32 [%rd3], %rd7, 16;
+
+    ret;
+}
